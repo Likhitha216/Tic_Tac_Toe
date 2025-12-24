@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tic Tac Toe with Scoreboard</title>
+
+<style>
+body{
+    margin:0;
+    font-family:'Poppins',sans-serif;
+    background:linear-gradient(135deg,#667eea,#764ba2);
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    height:100vh;
+    overflow:hidden;
+    color:white;
+}
+.container{
+    background:rgba(0,0,0,0.3);
+    padding:20px;
+    border-radius:15px;
+    text-align:center;
+    width:350px;
+    z-index:2;
+}
+h1{margin:8px 0;}
+
+.scoreboard{
+    display:flex;
+    justify-content:space-around;
+    margin:10px 0;
+    font-weight:bold;
+}
+.score{
+    background:rgba(255,255,255,0.2);
+    padding:6px 10px;
+    border-radius:10px;
+    font-size:14px;
+}
+
+.modes button,.reset{
+    margin:6px;
+    padding:8px 18px;
+    border:none;
+    border-radius:20px;
+    cursor:pointer;
+    font-weight:bold;
+}
+.modes button{background:#ffcc70;}
+.reset{background:#ff7675;color:white;}
+
+.board{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:8px;
+    margin:15px 0;
+}
+.cell{
+    width:90px;
+    height:90px;
+    background:rgba(255,255,255,0.25);
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    font-size:2.6rem;
+    font-weight:bold;
+    border-radius:10px;
+    cursor:pointer;
+}
+.status{
+    margin:8px 0;
+    font-weight:bold;
+}
+
+/* Fireworks */
+.firework{
+    position:absolute;
+    width:6px;
+    height:6px;
+    border-radius:50%;
+    animation:explode 1.2s ease-out forwards;
+}
+@keyframes explode{
+    from{transform:scale(1);opacity:1;}
+    to{transform:scale(6);opacity:0;}
+}
+
+/* Praise text */
+.praise{
+    position:absolute;
+    font-size:28px;
+    font-weight:800;
+    color:#FFD700;
+    text-shadow:2px 2px 8px black;
+    animation:rise 3s ease-out forwards;
+    left:50%;
+    transform:translateX(-50%);
+    top:65%;
+}
+@keyframes rise{
+    from{opacity:1;transform:translate(-50%,0);}
+    to{opacity:0;transform:translate(-50%,-180px);}
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+    <h1>🎮 Tic Tac Toe</h1>
+
+    <div class="scoreboard">
+        <div class="score">❌ X: <span id="xScore">0</span></div>
+        <div class="score">😐 Draw: <span id="drawScore">0</span></div>
+        <div class="score">⭕ O: <span id="oScore">0</span></div>
+    </div>
+
+    <div class="modes">
+        <button onclick="setMode('ai')">🤖 vs AI</button>
+        <button onclick="setMode('pvp')">👥 2 Players</button>
+    </div>
+
+    <div class="status" id="status">Choose a mode</div>
+    <div class="board" id="board"></div>
+    <button class="reset" onclick="resetBoard()">🔄 Next Round</button>
+</div>
+
+<script>
+const board=document.getElementById("board");
+const statusText=document.getElementById("status");
+const xScoreEl=document.getElementById("xScore");
+const oScoreEl=document.getElementById("oScore");
+const drawScoreEl=document.getElementById("drawScore");
+
+let cells=Array(9).fill("");
+let currentPlayer="X";
+let gameActive=false;
+let mode="";
+
+let xScore=0,oScore=0,drawScore=0;
+
+const winPatterns=[
+    [0,1,2],[3,4,5],[6,7,8],
+    [0,3,6],[1,4,7],[2,5,8],
+    [0,4,8],[2,4,6]
+];
+
+const praises=[
+    "YOU WON! 🎉",
+    "CHAMPION! 👑",
+    "AMAZING PLAY! 🌟",
+    "BRILLIANT! 🔥"
+];
+
+function setMode(m){
+    mode=m;
+    resetBoard();
+    gameActive=true;
+    statusText.textContent=`Player ${currentPlayer}'s turn`;
+}
+
+function createBoard(){
+    board.innerHTML="";
+    cells.forEach((_,i)=>{
+        const cell=document.createElement("div");
+        cell.className="cell";
+        cell.onclick=()=>cellClicked(i);
+        board.appendChild(cell);
+    });
+}
+
+function cellClicked(i){
+    if(!gameActive||cells[i])return;
+    makeMove(i,currentPlayer);
+
+    if(mode==="ai"&&currentPlayer==="O"&&gameActive){
+        setTimeout(aiMove,400);
+    }
+}
+
+function makeMove(i,player){
+    cells[i]=player;
+    board.children[i].textContent=player;
+    if(checkWinner())return;
+    currentPlayer=currentPlayer==="X"?"O":"X";
+    statusText.textContent=`Player ${currentPlayer}'s turn`;
+}
+
+function aiMove(){
+    let empty=cells.map((v,i)=>v===""?i:null).filter(v=>v!==null);
+    makeMove(empty[Math.floor(Math.random()*empty.length)],"O");
+}
+
+function checkWinner(){
+    for(let p of winPatterns){
+        const[a,b,c]=p;
+        if(cells[a]&&cells[a]===cells[b]&&cells[a]===cells[c]){
+            statusText.textContent=`🎉 Player ${cells[a]} Wins!`;
+            updateScore(cells[a]);
+            celebrate();
+            gameActive=false;
+            return true;
+        }
+    }
+    if(!cells.includes("")){
+        statusText.textContent="😐 Draw!";
+        drawScore++;
+        drawScoreEl.textContent=drawScore;
+        gameActive=false;
+        return true;
+    }
+    return false;
+}
+
+function updateScore(winner){
+    if(winner==="X"){xScore++;xScoreEl.textContent=xScore;}
+    else{oScore++;oScoreEl.textContent=oScore;}
+}
+
+function celebrate(){
+    const start=Date.now();
+    const interval=setInterval(()=>{
+        createFirework();
+        createPraise();
+        if(Date.now()-start>3000)clearInterval(interval);
+    },300);
+}
+
+function createFirework(){
+    const f=document.createElement("div");
+    f.className="firework";
+    f.style.left=Math.random()*100+"vw";
+    f.style.top=Math.random()*100+"vh";
+    f.style.background=`hsl(${Math.random()*360},100%,60%)`;
+    document.body.appendChild(f);
+    setTimeout(()=>f.remove(),1200);
+}
+
+function createPraise(){
+    const p=document.createElement("div");
+    p.className="praise";
+    p.textContent=praises[Math.floor(Math.random()*praises.length)];
+    document.body.appendChild(p);
+    setTimeout(()=>p.remove(),3000);
+}
+
+function resetBoard(){
+    cells=Array(9).fill("");
+    currentPlayer="X";
+    gameActive=true;
+    statusText.textContent=`Player ${currentPlayer}'s turn`;
+    createBoard();
+}
+
+createBoard();
+</script>
+
+</body>
+</html>
